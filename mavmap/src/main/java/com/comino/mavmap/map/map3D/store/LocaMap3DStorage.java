@@ -18,7 +18,8 @@ import georegression.struct.point.Point3D_I32;
 
 public class LocaMap3DStorage {
 
-	private final static String EXT  = ".m3D";
+	private final static String EXT   = ".m3D";
+	private final static String EXT2  = ".m3O";
 
 	private float  lat;
 	private float  lon;
