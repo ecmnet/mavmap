@@ -1,4 +1,4 @@
-package com.comino.mavmap.map.map3D.store;
+package com.comino.mavmap.map.map3D.impl.octree.store;
 
 import java.io.BufferedReader;
 import java.io.File;

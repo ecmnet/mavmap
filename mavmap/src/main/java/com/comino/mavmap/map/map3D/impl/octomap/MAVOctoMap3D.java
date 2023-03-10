@@ -65,6 +65,11 @@ public class MAVOctoMap3D {
 		OcTreeKey key = map.coordinateToKey(o.x, o.y, -o.z);
 		map.updateNode(key,true);
 	}
+	
+	public void insert(GeoTuple4D_F32<?> o) {
+		OcTreeKey key = map.coordinateToKey(o.x, o.y, -o.z);
+		map.updateNode(key,o.w);
+	}
 
 	public void insert(float x, float y, float z) {
 		OcTreeKey key = map.coordinateToKey(x, y, z);
