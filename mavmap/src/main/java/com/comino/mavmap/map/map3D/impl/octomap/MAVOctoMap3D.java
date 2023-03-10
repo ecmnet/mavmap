@@ -159,6 +159,7 @@ public class MAVOctoMap3D {
 		leaf_nodes.forEach((node) -> {
 			if(node.getTimestamp() < tms) {
 				OcTreeKey key = new OcTreeKey();
+				map.deleteNode(key);
 				node.getKey(key);
 				node.clear();
 				node.tms = System.currentTimeMillis();
@@ -205,12 +206,11 @@ public class MAVOctoMap3D {
 	public void insertRandom(int count) {
 		Vector3D_F32 s = new Vector3D_F32(0,0,0);
 		Vector3D_F32 e = new Vector3D_F32(0,0,0);
-		long tms = System.nanoTime();
 		for(int i=0; i < count; i++) {
-			e.setTo((float)Math.random()*10-5, (float)Math.random()*10-5, -(float)Math.random()*4);
+			e.setTo((float)Math.random()*20-10, (float)Math.random()*20-10, -(float)Math.random()*4);
 			update(s, e);
 		}
-		System.out.println(((System.nanoTime()-tms)/1000_000L)+"ms");
+		map.prune();
 	}
 
 	private long encode(int k0, int k1, int k2, int value_4bit) {

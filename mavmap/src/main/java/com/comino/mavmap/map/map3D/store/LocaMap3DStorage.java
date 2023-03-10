@@ -151,6 +151,8 @@ public class LocaMap3DStorage {
 
 	private boolean read(String fn) {
 		
+		
+		
 		Point3D_I32 mappo = new Point3D_I32(); double prob =0;
 		File f = new File(base_path+fn);
 		if(f.exists()) {
