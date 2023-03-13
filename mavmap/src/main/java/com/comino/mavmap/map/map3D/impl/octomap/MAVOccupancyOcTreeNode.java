@@ -10,6 +10,10 @@ public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MA
 		super();
 		this.tms = System.currentTimeMillis();
 	}
+	
+	public void setValidityToInfinite() {
+		this.tms = Long.MAX_VALUE;
+	}
 
 	@Override
 	public void clear() {

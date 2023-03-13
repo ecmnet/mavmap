@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.locks.LockSupport;
 
 import com.comino.mavcom.config.MSPConfig;
 import com.comino.mavmap.map.map3D.Map3DSpacialInfo;
@@ -35,7 +36,10 @@ import us.ihmc.jOctoMap.tools.OcTreeNodeTools;
 public class OctoMap3DStorage {
 
 	private final static String EXT           = ".m3D";
-	private final static String EXT_OCTOMAP   = ".bt";
+	private final static String EXT_OCTOMAP   = ".m3O";
+
+	private static final float clampingThresMin = 0.1f;
+	private static final float clampingThresMax = 0.9f;
 
 	private  MAVOctoMap3D 			   map;
 	private  String                    base_path;
@@ -91,10 +95,11 @@ public class OctoMap3DStorage {
 
 		map.clear();
 		map.resetChangeDetection();
+		map.disableRemoveOutdated();
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
-		readOTDataRecursive(map.getTree(),null, inputStream);
+		readBTDataRecursive(map.getTree(),null, inputStream);
 
 		inputStream.close();
 
@@ -161,15 +166,18 @@ public class OctoMap3DStorage {
 
 		map.clear();
 		map.resetChangeDetection();
+		map.disableRemoveOutdated();
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
-		File f = new File(base_path+fn);
+		final File f = new File(base_path+fn);
 		if(f.exists()) {
 			try {
 				FileInputStream fs = new FileInputStream(f);
+				long tms = System.currentTimeMillis();
 				Long[] data = gson.fromJson(new BufferedReader(new InputStreamReader(fs)), Long[].class);
-				System.out.println("Map '"+f.getAbsolutePath()+"' found in store with "+data.length+ " entries");
+				System.out.println("Map '"+f.getAbsolutePath()+"' found in store with "+data.length+ " entries: "+
+						(System.currentTimeMillis()-tms)+"ms");
 				for(int i=0;i<data.length;i++) {
 					map.decode(data[i], mappo);
 					map.insert(mappo);
@@ -183,6 +191,7 @@ public class OctoMap3DStorage {
 		}
 		System.err.println(fn+" not found");
 		return false;
+
 	}
 
 
@@ -196,10 +205,13 @@ public class OctoMap3DStorage {
 
 		map.clear();
 		map.resetChangeDetection();
+		map.disableRemoveOutdated();
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
 		Point3D_I32 mappo = new Point3D_I32(); Point3D_F64 global = new Point3D_F64();
+		Point3D_F32 vehicle = new Point3D_F32();
+		Point3D_F32 target = new Point3D_F32();
 		double prob =0;
 		File f = new File(base_path+fn);
 		if(f.exists()) {
@@ -210,8 +222,10 @@ public class OctoMap3DStorage {
 				for(int i=0;i<data.length;i++) {
 					prob = info.decodeMapPoint(data[i], mappo);
 					info.mapToGlobal(mappo, global);
+					target.setTo((float)global.x,(float)global.y,(float)global.z);
 					if(prob> 0.5)
-						map.insert((float)global.x,(float)global.y,(float)global.z);
+						map.update(vehicle, target);
+
 				}
 				return true;
 			} catch (Exception e) {
@@ -245,9 +259,64 @@ public class OctoMap3DStorage {
 		return result;
 	}
 
-	private void readOTDataRecursive(MAVOccupancyOcTree tmp, MAVOccupancyOcTreeNode node, InputStream in) {
+	//	private void readOTDataRecursive(MAVOccupancyOcTree tmp, MAVOccupancyOcTreeNode node, InputStream in) {
+	//
+	//		try {
+	//
+	//			LockSupport.parkNanos(1000_000L);
+	//
+	//			if(node == null)
+	//				node = tmp.getRoot();
+	//
+	//			if(in.available()<=0 )
+	//				return;
+	//
+	//			node_counter++;
+	//			if(node_counter % 100000 == 0)
+	//				System.out.print(".");
+	//
+	//			//			float f = Float.intBitsToFloat(readInt(in));
+	//			//			node.setLogOdds(f);
+	//
+	//			in.read(); 
+	//
+	//
+	//			// Read Childrenbits
+	//			byte children = (byte)in.read();
+	//
+	//			if(!node.hasArrayForChildren())
+	//				node.allocateChildren();
+	//
+	//			int tree_depth = tmp.getTreeDepth();
+	//			int childDepth = node.getDepth()+1;
+	//
+	//			for(int i = 0; i < 8; i++) {
+	//				if( ((children >> i) & 0x1 )== 0x1 ) {
+	//					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+	//					OcTreeKey childKey = OcTreeKeyTools.computeChildKey(i, node, childDepth,tree_depth);
+	//
+	//
+	//
+	//					//					tmp.keyToCoordinate(childKey, point);
+	//					//					System.out.println(point+":"+childDepth+":"+OcTreeKeyTools.computeCenterOffsetKey(tree_depth));
+	//
+	//					tmp.getChangedKeys().put(childKey, true);
+	//					new_node.setProperties(childKey, childDepth, resolution, tree_depth);
+	//					node.setChild(i, new_node);
+	//					readOTDataRecursive(tmp,new_node,in);
+	//				}
+	//			}
+	//		} catch(Exception e) {
+	//			System.err.println(e.getMessage());
+	//			System.exit(1);;
+	//		}
+	//	}
+
+	private void readBTDataRecursive(MAVOccupancyOcTree tmp, MAVOccupancyOcTreeNode node, InputStream in) {
 
 		try {
+
+			LockSupport.parkNanos(1000_000L);
 
 			if(node == null)
 				node = tmp.getRoot();
@@ -259,12 +328,15 @@ public class OctoMap3DStorage {
 			if(node_counter % 100000 == 0)
 				System.out.print(".");
 
-			float f = Float.intBitsToFloat(readInt(in));
-			node.setLogOdds(f);
+			//			float f = Float.intBitsToFloat(readInt(in));
+			//			node.setLogOdds(f);
 
 
-			// Read Childrenbits
-			byte children = (byte)in.read();
+			node.setLogOdds(clampingThresMax);
+
+			// Read Children
+			byte child1to4 = (byte)in.read();
+			byte child5to8 = (byte)in.read();
 
 			if(!node.hasArrayForChildren())
 				node.allocateChildren();
@@ -272,27 +344,68 @@ public class OctoMap3DStorage {
 			int tree_depth = tmp.getTreeDepth();
 			int childDepth = node.getDepth()+1;
 
-			for(int i = 0; i < 8; i++) {
-				if( ((children >> i) & 0x1 )== 0x1 ) {
+			for(int i=0; i<4; i++) {
+				if (isBitSet(i*2,child1to4) && !isBitSet(i*2+1,child1to4)) {
+					// child is free leaf
 					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
-					OcTreeKey childKey = OcTreeKeyTools.computeChildKey(i, node, childDepth,tree_depth);
-
-
-
-					//					tmp.keyToCoordinate(childKey, point);
-					//					System.out.println(point+":"+childDepth+":"+OcTreeKeyTools.computeCenterOffsetKey(tree_depth));
-
-					tmp.getChangedKeys().put(childKey, true);
-					new_node.setProperties(childKey, childDepth, resolution, tree_depth);
 					node.setChild(i, new_node);
-					readOTDataRecursive(tmp,new_node,in);
+					new_node.setLogOdds(clampingThresMin);
+				}
+				else if (!isBitSet(i*2,child1to4) && isBitSet(i*2+1,child1to4)) {
+					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+					node.setChild(i, new_node);
+					new_node.setLogOdds(clampingThresMax);
+				}
+				else if (isBitSet(i*2,child1to4) && isBitSet(i*2+1,child1to4)) {
+					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+					node.setChild(i, new_node);
+					new_node.setLogOdds(-200);
 				}
 			}
+
+			for(int i=0; i<4; i++) {
+				if (isBitSet(i*2,child5to8) && !isBitSet(i*2+1,child5to8)) {
+					// child is free leaf
+					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+					node.setChild(i+4, new_node);
+					new_node.setLogOdds(clampingThresMin);
+				}
+				else if (!isBitSet(i*2,child5to8) && isBitSet(i*2+1,child5to8)) {
+					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+					node.setChild(i+4, new_node);
+					new_node.setLogOdds(clampingThresMax);
+				}
+				else if(isBitSet(i*2,child5to8) && isBitSet(i*2+1,child5to8)) {
+					MAVOccupancyOcTreeNode new_node = new MAVOccupancyOcTreeNode();
+					node.setChild(i+4, new_node);
+					new_node.setLogOdds(-200);
+				}
+			}
+
+			MAVOccupancyOcTreeNode child;
+
+			for(int i=0; i<8; i++) {
+				if ((child = node.getChild(i)) != null) {
+					OcTreeKey childKey = OcTreeKeyTools.computeChildKey(i, node, childDepth,tree_depth);
+					tmp.getChangedKeys().put(childKey, true);
+					child.setProperties(childKey, childDepth, resolution, tree_depth);
+					if (Math.abs(child.getLogOdds() + 200.)<1e-3) {
+						readBTDataRecursive(tmp,child,in);
+						child.setLogOdds(child.getMaxChildLogOdds());
+					}
+				} 
+			} 
+
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
 			System.exit(1);;
 		}
 	}
+
+	private boolean isBitSet(int i, byte b) {
+		return ((b >> i) & 0x01L)  == 0x01L;
+	}
+
 
 	private boolean readHeader(InputStream in) throws IOException {
 		while(in.available()>0) {
@@ -348,7 +461,7 @@ public class OctoMap3DStorage {
 	public static void main(String[] args) throws Exception {
 		MAVOctoMap3D map = new MAVOctoMap3D();
 		OctoMap3DStorage store = new OctoMap3DStorage(map,0,0);
-		store.importOctomap("new_college.ot");
+		store.importOctomap("new_college.bt");
 		System.out.println("Size is: "+map.getNumberOfNodes());
 	}
 

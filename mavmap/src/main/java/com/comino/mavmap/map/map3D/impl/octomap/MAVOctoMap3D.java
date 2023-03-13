@@ -3,15 +3,10 @@ package com.comino.mavmap.map.map3D.impl.octomap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import com.comino.mavmap.map.map3D.Map3DSpacialInfo;
-
 import georegression.struct.GeoTuple3D_F32;
-import georegression.struct.GeoTuple3D_F64;
 import georegression.struct.GeoTuple4D_F32;
-import georegression.struct.point.Point3D_F32;
 import georegression.struct.point.Point4D_F32;
 import georegression.struct.point.Vector3D_F32;
 import us.ihmc.euclid.tuple3D.Point3D;
@@ -19,8 +14,6 @@ import us.ihmc.jOctoMap.iterators.OcTreeIterable;
 import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
 import us.ihmc.jOctoMap.key.OcTreeKeyReadOnly;
-import us.ihmc.jOctoMap.node.OccupancyOcTreeNode;
-import us.ihmc.jOctoMap.ocTree.OccupancyOcTree;
 import us.ihmc.jOctoMap.tools.OccupancyTools;
 
 public class MAVOctoMap3D {
@@ -35,12 +28,13 @@ public class MAVOctoMap3D {
 	private final OcTreeKey            tmpkey;
 
 	private final List<Long>           deletedNodeListenCoded;
+	private boolean allowRemoveOutDated;
 
 	public MAVOctoMap3D() {
-		this(RESOLUTION);
+		this(RESOLUTION,true);
 	}
 
-	public MAVOctoMap3D(double resolution) {
+	public MAVOctoMap3D(double resolution, boolean allowRemoveOutDated) {
 
 		this.map    = new MAVOccupancyOcTree(resolution);
 		this.map.enableChangeDetection(true);
@@ -49,6 +43,12 @@ public class MAVOctoMap3D {
 
 		this.deletedNodeListenCoded = new ArrayList<Long>();
 
+		this.allowRemoveOutDated = allowRemoveOutDated;
+
+	}
+
+	public void disableRemoveOutdated() {
+		this.allowRemoveOutDated = false;
 	}
 
 	public void update(GeoTuple3D_F32<?> p, GeoTuple3D_F32<?> o ) {
@@ -65,7 +65,7 @@ public class MAVOctoMap3D {
 		OcTreeKey key = map.coordinateToKey(o.x, o.y, -o.z);
 		map.updateNode(key,true);
 	}
-	
+
 	public void insert(GeoTuple4D_F32<?> o) {
 		OcTreeKey key = map.coordinateToKey(o.x, o.y, -o.z);
 		map.updateNode(key,o.w);
@@ -104,7 +104,7 @@ public class MAVOctoMap3D {
 		if(node==null)
 			return 0;
 		target.setTo((float)node.getX(), (float)node.getY(), (float)node.getZ(), node.getLogOdds());
-		return encode(key,0);
+		return encode(key,1);
 	}
 
 	public Set<OcTreeKeyReadOnly> getChanged() {
@@ -129,6 +129,12 @@ public class MAVOctoMap3D {
 		deletedNodeListenCoded.clear();
 	}
 
+	public long countOccupiedNodes() {
+		OcTreeIterable<MAVOccupancyOcTreeNode> leaf_nodes = OcTreeIteratorFactory.createLeafIterable(map.getRoot());
+		return leaf_nodes.toList().parallelStream().
+				filter(n -> OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n)).count();
+	}
+
 
 	public List<Long> getChangedEncoded(boolean reset) {
 
@@ -142,6 +148,7 @@ public class MAVOctoMap3D {
 		Set<OcTreeKeyReadOnly> keys = map.getChangedKeys().keySet();
 
 		for(OcTreeKeyReadOnly key : keys) {
+			//	System.out.println(key);
 			MAVOccupancyOcTreeNode node = map.search(key);
 			if(node==null)
 				continue;
@@ -156,24 +163,37 @@ public class MAVOctoMap3D {
 		return encodedList;	
 	}
 
-	public List<Long> removeOutdatedNodes(long dt_ms) {
+
+	public void removeOutdatedNodes(long dt_ms) {
+
+		if(!allowRemoveOutDated)
+			return;
 
 		long tms = System.currentTimeMillis()-dt_ms;
 
 		OcTreeIterable<MAVOccupancyOcTreeNode> leaf_nodes = OcTreeIteratorFactory.createLeafIterable(map.getRoot());
-		leaf_nodes.forEach((node) -> {
+
+		leaf_nodes.toList().parallelStream().forEach((node) -> {
 			if(node.getTimestamp() < tms) {
 				OcTreeKey key = new OcTreeKey();
-				map.deleteNode(key);
 				node.getKey(key);
-				node.clear();
-				node.tms = System.currentTimeMillis();
-				map.getChangedMap().put(key, false);
-				
+				node.setLogOdds(1e-7f);
+				node.tms = Long.MAX_VALUE;
+				map.getChangedKeys().put(key, false);
 			}
 		});
 
-		return deletedNodeListenCoded;
+		map.prune();
+	}
+
+	public void invalidateAllOccupied() {
+
+		Iterator<MAVOccupancyOcTreeNode> all_nodes = map.iterator();
+		while(all_nodes.hasNext()) {
+			MAVOccupancyOcTreeNode node = all_nodes.next();
+			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), node))
+				map.getChangedKeys().put(node.getKeyCopy(), true);	
+		}	
 	}
 
 	public List<Long> getTreeEncoded() {
@@ -200,7 +220,11 @@ public class MAVOctoMap3D {
 
 	public int decode(long encoded, OcTreeKey target) {
 		target.set((int)((encoded >> 40) & 0xFFFFFL), (int)((encoded >> 20) & 0xFFFFFL), (int)(encoded & 0xFFFFFL));
-		return ((int)((encoded >> 60) & 0xFL));
+		return ((int)((encoded >> 60) & 0xFFFFL));
+	}
+
+	private long encode(int k0, int k1, int k2, int value_4bit) {
+		return (((long)(value_4bit) << 60L )| (long)k0 << 40L) | ((long)k1 << 20L) | (long)k2;
 	}
 
 	public GeoTuple4D_F32<?> decode(long encoded,GeoTuple4D_F32<?> p) {
@@ -216,10 +240,6 @@ public class MAVOctoMap3D {
 			update(s, e);
 		}
 		map.prune();
-	}
-
-	private long encode(int k0, int k1, int k2, int value_4bit) {
-		return (((long)(value_4bit) << 60L )| (long)k0 << 40L) | ((long)k1 << 20L) | (long)k2;
 	}
 
 	private GeoTuple4D_F32<?> get(OcTreeKeyReadOnly k,GeoTuple4D_F32<?> p, int value_4bit) {
