@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.comino.mavmap.map.map3D.impl.octomap.boundingbox.MAVBoundingBox;
+
 import georegression.struct.GeoTuple3D_F32;
 import georegression.struct.GeoTuple4D_F32;
 import georegression.struct.point.Point4D_F32;
@@ -28,6 +30,7 @@ public class MAVOctoMap3D {
 	private final OcTreeKey            tmpkey;
 
 	private final List<Long>           deletedNodeListenCoded;
+	private final List<Long> encodedList = new ArrayList<Long>();
 	private boolean allowRemoveOutDated;
 
 	public MAVOctoMap3D() {
@@ -49,6 +52,10 @@ public class MAVOctoMap3D {
 
 	public void disableRemoveOutdated() {
 		this.allowRemoveOutDated = false;
+	}
+	
+	public void enableRemoveOutdated() {
+		this.allowRemoveOutDated = true;
 	}
 
 	public void update(GeoTuple3D_F32<?> p, GeoTuple3D_F32<?> o ) {
@@ -110,6 +117,23 @@ public class MAVOctoMap3D {
 	public Set<OcTreeKeyReadOnly> getChanged() {
 		Set<OcTreeKeyReadOnly> keys = map.getChangedKeys().keySet();
 		return keys;
+	}
+	
+	public OcTreeIterable<MAVOccupancyOcTreeNode> getLeafsAtPosition(  GeoTuple4D_F32<?> p, float l, float h) {
+		return OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h));
+	}
+	
+
+	public List<Long> getLeafsAtPositionEncoded(  GeoTuple4D_F32<?> p, float l, float h) {
+		encodedList.clear();
+		
+		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h)).
+		   forEach((n) ->  {
+			 if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
+				 encodedList.add(encode(n,1));
+	    });
+
+		return encodedList;	
 	}
 
 
@@ -212,6 +236,10 @@ public class MAVOctoMap3D {
 				encodedList.add(encode(node.getKey0(), node.getKey1(), node.getKey2(),0));
 		}
 		return encodedList;	
+	}
+	
+	public long encode(MAVOccupancyOcTreeNode k, int value_4bit) {
+		return encode(k.getKey0(), k.getKey1(), k.getKey2(),value_4bit);
 	}
 
 	public long encode(OcTreeKeyReadOnly k, int value_4bit) {
