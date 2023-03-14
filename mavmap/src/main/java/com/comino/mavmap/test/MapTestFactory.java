@@ -19,6 +19,8 @@ public class MapTestFactory {
 
 		if(map==null)
 			return;
+		
+		map.disableRemoveOutdated();
 
 		Point3D_F32   pos          = new Point3D_F32();
 		Point3D_F32   wall         = new Point3D_F32();
