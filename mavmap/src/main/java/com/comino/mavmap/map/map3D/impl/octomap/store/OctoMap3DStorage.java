@@ -163,7 +163,6 @@ public class OctoMap3DStorage {
 	private boolean read(String fn) {
 
 		Point4D_F32 mappo = new Point4D_F32();
-
 		map.clear();
 		map.resetChangeDetection();
 		map.disableRemoveOutdated();
@@ -186,7 +185,6 @@ public class OctoMap3DStorage {
 			} catch (Exception e) {
 				System.err.println(fn+" reading error ");
 				e.printStackTrace();
-				return false;
 			}
 		}
 		System.err.println(fn+" not found");

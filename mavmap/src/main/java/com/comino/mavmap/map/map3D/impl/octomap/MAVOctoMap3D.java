@@ -16,6 +16,7 @@ import us.ihmc.jOctoMap.iterators.OcTreeIterable;
 import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
 import us.ihmc.jOctoMap.key.OcTreeKeyReadOnly;
+import us.ihmc.jOctoMap.tools.OcTreeKeyTools;
 import us.ihmc.jOctoMap.tools.OccupancyTools;
 
 public class MAVOctoMap3D {
@@ -29,7 +30,7 @@ public class MAVOctoMap3D {
 	private final Point3D              tmp;
 	private final OcTreeKey            tmpkey;
 
-	private final List<Long>           deletedNodeListenCoded;
+	private final List<OcTreeKeyReadOnly> nodesToBeDeleted;
 	private final List<Long> encodedList = new ArrayList<Long>();
 	private boolean allowRemoveOutDated;
 
@@ -44,7 +45,7 @@ public class MAVOctoMap3D {
 		this.tmp    = new Point3D();
 		this.tmpkey = new OcTreeKey();
 
-		this.deletedNodeListenCoded = new ArrayList<Long>();
+		this.nodesToBeDeleted = new ArrayList<OcTreeKeyReadOnly>();
 
 		this.allowRemoveOutDated = allowRemoveOutDated;
 
@@ -53,7 +54,7 @@ public class MAVOctoMap3D {
 	public void disableRemoveOutdated() {
 		this.allowRemoveOutDated = false;
 	}
-	
+
 	public void enableRemoveOutdated() {
 		this.allowRemoveOutDated = true;
 	}
@@ -118,20 +119,20 @@ public class MAVOctoMap3D {
 		Set<OcTreeKeyReadOnly> keys = map.getChangedKeys().keySet();
 		return keys;
 	}
-	
-	public OcTreeIterable<MAVOccupancyOcTreeNode> getLeafsAtPosition(  GeoTuple4D_F32<?> p, float l, float h) {
-		return OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h));
+
+	public OcTreeIterable<MAVOccupancyOcTreeNode> getLeafsAtPosition(  GeoTuple4D_F32<?> p, float l) {
+		return OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, 1));
 	}
-	
+
 
 	public List<Long> getLeafsAtPositionEncoded(  GeoTuple4D_F32<?> p, float l, float h) {
 		encodedList.clear();
-		
+
 		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h)).
-		   forEach((n) ->  {
-			 if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
-				 encodedList.add(encode(n,1));
-	    });
+		forEach((n) ->  {
+			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
+				encodedList.add(encode(n,1));
+		});
 
 		return encodedList;	
 	}
@@ -143,14 +144,6 @@ public class MAVOctoMap3D {
 
 	public void resetChangeDetection() {
 		map.resetChangeDetection();
-	}
-
-	public List<Long> getDeletedEncoded() {
-		return deletedNodeListenCoded;
-	}
-
-	public void clearDeletedEncoded() {
-		deletedNodeListenCoded.clear();
 	}
 
 	public long countOccupiedNodes() {
@@ -188,26 +181,26 @@ public class MAVOctoMap3D {
 	}
 
 
-	public void removeOutdatedNodes(long dt_ms) {
+	public void removeOutdatedNodes(int limit,long dt_ms) {
 
-		if(!allowRemoveOutDated)
-			return;
+		//		if(!allowRemoveOutDated)
+		//			return;
+		
+		deleteOutdatedNodes();
 
 		long tms = System.currentTimeMillis()-dt_ms;
 
 		OcTreeIterable<MAVOccupancyOcTreeNode> leaf_nodes = OcTreeIteratorFactory.createLeafIterable(map.getRoot());
 
-		leaf_nodes.toList().parallelStream().forEach((node) -> {
+		leaf_nodes.toList().stream().limit(limit).forEach((node) -> {
 			if(node.getTimestamp() < tms) {
 				OcTreeKey key = new OcTreeKey();
 				node.getKey(key);
-				node.setLogOdds(1e-7f);
-				node.tms = Long.MAX_VALUE;
+				node.setLogOdds(1.0e-7f);
 				map.getChangedKeys().put(key, false);
+				nodesToBeDeleted.add(key);
 			}
 		});
-
-		map.prune();
 	}
 
 	public void invalidateAllOccupied() {
@@ -237,7 +230,7 @@ public class MAVOctoMap3D {
 		}
 		return encodedList;	
 	}
-	
+
 	public long encode(MAVOccupancyOcTreeNode k, int value_4bit) {
 		return encode(k.getKey0(), k.getKey1(), k.getKey2(),value_4bit);
 	}
@@ -269,6 +262,11 @@ public class MAVOctoMap3D {
 		}
 		map.prune();
 	}
+	
+	public boolean isNodeOccupied(MAVOccupancyOcTreeNode node) {
+		return map.isNodeOccupied(node);
+	}
+
 
 	private GeoTuple4D_F32<?> get(OcTreeKeyReadOnly k,GeoTuple4D_F32<?> p, int value_4bit) {
 		if(p == null)
@@ -278,11 +276,19 @@ public class MAVOctoMap3D {
 		return p;	
 	}
 
-	private void deleteNode(OcTreeKeyReadOnly key) {
-		if(map.deleteNode(key)) 
-			deletedNodeListenCoded.add(encode(key.getKey(0), key.getKey(1), key.getKey(2),DELETED));
+	private void deleteOutdatedNodes() {
+
+		for(int i=0;i<nodesToBeDeleted.size();i++) {
+			OcTreeKeyReadOnly key = nodesToBeDeleted.remove(i);
+			if(!map.getChangedKeys().keySet().contains(key)) {
+				map.deleteNode(key);
+				if(map.getNumberOfNodes()==1) {
+					map.clear();
+					nodesToBeDeleted.clear();
+					break;
+				}
+			}
+		}
 	}
-
-
 
 }

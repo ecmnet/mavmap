@@ -1,5 +1,6 @@
 package com.comino.mavmap.map.map3D.impl.octomap;
 
+import us.ihmc.jOctoMap.node.baseImplementation.AbstractOcTreeNode;
 import us.ihmc.jOctoMap.node.baseImplementation.AbstractOccupancyOcTreeNode;
 
 public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MAVOccupancyOcTreeNode> {
@@ -17,6 +18,7 @@ public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MA
 
 	@Override
 	public void clear() {
+	  this.tms = Long.MAX_VALUE;
 	  super.resetLogOdds();
 	}
 
@@ -29,7 +31,5 @@ public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MA
 	public long getTimestamp() {
 		return tms;
 	}
-
-
 
 }

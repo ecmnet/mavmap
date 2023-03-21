@@ -1,10 +1,5 @@
 package com.comino.mavmap.map.map3D.impl.octomap;
 
-
-import java.util.Map;
-
-import us.ihmc.jOctoMap.key.OcTreeKeyReadOnly;
-
 public class MAVOccupancyOcTree extends MAVAbstractOccupancyOcTree<MAVOccupancyOcTreeNode>
 {
    public MAVOccupancyOcTree(double resolution)
@@ -17,6 +12,4 @@ public class MAVOccupancyOcTree extends MAVAbstractOccupancyOcTree<MAVOccupancyO
    {
       return MAVOccupancyOcTreeNode.class;
    }
-   
-  
 }

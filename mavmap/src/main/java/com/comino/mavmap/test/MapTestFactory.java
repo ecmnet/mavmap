@@ -20,6 +20,8 @@ public class MapTestFactory {
 		if(map==null)
 			return;
 		
+		int height = (int)((Math.random()*5+0.3f)/map.getResolution());
+		
 		map.disableRemoveOutdated();
 
 		Point3D_F32   pos          = new Point3D_F32();
@@ -29,7 +31,7 @@ public class MapTestFactory {
 		pos.y = model.state.l_y + (float)Math.sin(model.attitude.y) * distance_m;
 
 		for(int k=-3; k<=3; k++) {
-			for(int i=0;i<15;i++) {
+			for(int i=0;i<height;i++) {
 				wall.x = pos.x + (float)Math.sin(-model.attitude.y) * map.getResolution()*k;
 				wall.y = pos.y + (float)Math.cos(-model.attitude.y) * map.getResolution()*k;
 				wall.z = -map.getResolution()*i-0.1f;
