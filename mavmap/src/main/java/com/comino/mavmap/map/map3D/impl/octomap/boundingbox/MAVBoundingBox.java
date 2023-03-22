@@ -29,7 +29,7 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 		
 		this.setLocalBoundingBox(box);
 		this.setYaw(0);
-		this.update(0.8f, 16);
+		this.update(0.2f, 16);
 	}
 	
 	public void setTop(GeoTuple4D_F32<?> p, float half_side_xyz) {
