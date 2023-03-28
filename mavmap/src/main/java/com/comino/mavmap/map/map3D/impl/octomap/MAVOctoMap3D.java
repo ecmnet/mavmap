@@ -17,6 +17,7 @@ import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
 import us.ihmc.jOctoMap.key.OcTreeKeyReadOnly;
 import us.ihmc.jOctoMap.tools.OcTreeKeyTools;
+import us.ihmc.jOctoMap.tools.OcTreeSearchTools;
 import us.ihmc.jOctoMap.tools.OccupancyTools;
 
 public class MAVOctoMap3D {
@@ -92,6 +93,27 @@ public class MAVOctoMap3D {
 			return node.getOccupancy();	
 		return INDETERMINED;
 	}
+	
+	public boolean isOccupied(GeoTuple4D_F32<?> p) {
+		return isOccupied(p,map.getResolution(),map.getTreeDepth());
+	}
+	
+	public boolean isOccupied(GeoTuple4D_F32<?> p, double resolution, int depth) {
+		tmp.set(p.x,p.y,-p.z);
+		MAVOccupancyOcTreeNode node = OcTreeSearchTools.search(map.getRoot(), tmp, resolution, depth);
+		if(node!=null)
+			  return map.isNodeOccupied(node);
+			return false;
+	}
+	
+	public boolean isOccupied(GeoTuple3D_F32<?> p, double resolution, int depth) {
+		tmp.set(p.x,p.y,-p.z);
+		MAVOccupancyOcTreeNode node = OcTreeSearchTools.search(map.getRoot(), tmp, resolution, depth);
+		if(node!=null)
+			  return map.isNodeOccupied(node);
+			return false;
+	}
+
 
 	public double search(GeoTuple3D_F32<?> p) {
 		return search(p.x,p.y,p.z);
@@ -119,23 +141,27 @@ public class MAVOctoMap3D {
 		Set<OcTreeKeyReadOnly> keys = map.getChangedKeys().keySet();
 		return keys;
 	}
-
-	public OcTreeIterable<MAVOccupancyOcTreeNode> getLeafsAtPosition(  GeoTuple4D_F32<?> p, float l) {
-		return OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, 1));
+	
+	public MAVOccupancyOcTreeNode getRoot() {
+		return map.getRoot();
 	}
 
+//	public OcTreeIterable<MAVOccupancyOcTreeNode> getLeafsAtPosition(  GeoTuple4D_F32<?> p, float l) {
+//		return OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, 1));
+//	}
 
-	public List<Long> getLeafsAtPositionEncoded(  GeoTuple4D_F32<?> p, float l, float h) {
-		encodedList.clear();
 
-		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h)).
-		forEach((n) ->  {
-			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
-				encodedList.add(encode(n,1));
-		});
-
-		return encodedList;	
-	}
+//	public List<Long> getLeafsAtPositionEncoded(  GeoTuple4D_F32<?> p, float l, float h) {
+//		encodedList.clear();
+//
+//		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h)).
+//		forEach((n) ->  {
+//			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
+//				encodedList.add(encode(n,1));
+//		});
+//
+//		return encodedList;	
+//	}
 
 
 	public int getNumberOfNodes() {
@@ -183,9 +209,9 @@ public class MAVOctoMap3D {
 
 	public void removeOutdatedNodes(int limit,long dt_ms) {
 
-		//		if(!allowRemoveOutDated)
-		//			return;
-		
+		if(!allowRemoveOutDated)
+			return;
+
 		deleteOutdatedNodes();
 
 		long tms = System.currentTimeMillis()-dt_ms;
@@ -262,7 +288,7 @@ public class MAVOctoMap3D {
 		}
 		map.prune();
 	}
-	
+
 	public boolean isNodeOccupied(MAVOccupancyOcTreeNode node) {
 		return map.isNodeOccupied(node);
 	}

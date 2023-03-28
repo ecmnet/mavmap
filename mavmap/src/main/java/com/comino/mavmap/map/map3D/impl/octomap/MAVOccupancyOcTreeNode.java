@@ -1,5 +1,7 @@
 package com.comino.mavmap.map.map3D.impl.octomap;
 
+import georegression.struct.GeoTuple3D_F32;
+import georegression.struct.GeoTuple4D_F32;
 import us.ihmc.jOctoMap.node.baseImplementation.AbstractOcTreeNode;
 import us.ihmc.jOctoMap.node.baseImplementation.AbstractOccupancyOcTreeNode;
 
@@ -30,6 +32,12 @@ public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MA
 
 	public long getTimestamp() {
 		return tms;
+	}
+	
+	public void getCenter(GeoTuple3D_F32<?> p) {
+		p.x =  (float)this.getX();
+		p.y =  (float)this.getY();
+		p.z = -(float)this.getZ();
 	}
 
 }

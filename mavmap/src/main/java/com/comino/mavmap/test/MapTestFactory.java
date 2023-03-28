@@ -20,9 +20,10 @@ public class MapTestFactory {
 		if(map==null)
 			return;
 		
+		map.disableRemoveOutdated();
+		
 		int height = (int)((Math.random()*5+0.3f)/map.getResolution());
 		
-		map.disableRemoveOutdated();
 
 		Point3D_F32   pos          = new Point3D_F32();
 		Point3D_F32   wall         = new Point3D_F32();
@@ -39,5 +40,6 @@ public class MapTestFactory {
 			}
 		}	
 	}
+	
 
 }
