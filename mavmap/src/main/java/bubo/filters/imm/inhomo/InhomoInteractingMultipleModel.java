@@ -235,7 +235,7 @@ public class InhomoInteractingMultipleModel<Control> {
 				DMatrixRMaj x_j_orig = hypotheses[j].getState().getMean();
 				DMatrixRMaj x_j = converter.convertMergeFrom(true, x_j_orig, j, i);
 
-				d.setTo(mixMean);
+				d.set(mixMean);
 				CommonOps_DDRM.add(d, -1.0, x_j, d);
 				CommonOps_DDRM.multTransB(d, d, outer);
 

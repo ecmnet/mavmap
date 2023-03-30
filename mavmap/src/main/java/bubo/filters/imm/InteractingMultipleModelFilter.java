@@ -221,7 +221,7 @@ public class InteractingMultipleModelFilter<Control> {
 
 			for (int j = 0; j < hypotheses.length; j++) {
 				ImmHypothesis m_j = hypotheses[j];
-				d.setTo(mixMean);
+				d.set(mixMean);
 				CommonOps_DDRM.add(d, -1, m_j.getMix().getMean(), d);
 				CommonOps_DDRM.multTransB(d, d, outer);
 

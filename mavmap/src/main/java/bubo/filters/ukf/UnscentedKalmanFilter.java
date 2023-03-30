@@ -184,17 +184,17 @@ public class UnscentedKalmanFilter<Control> implements KalmanFilterInterface<Con
 		DMatrixRMaj x = output.getMean();
 		DMatrixRMaj P = output.getCovariance();
 
-		tempMxM.setTo(P);
+		tempMxM.set(P);
 		CommonOps_DDRM.scale(n + kappa, tempMxM);
 
-		tempL.setTo(tempMxM);
+		tempL.set(tempMxM);
 		if (!choleky.decompose(tempL))
 			throw new RuntimeException("Cholesky failed");
 
 		DMatrixRMaj A = choleky.getT(null);
 //        UtilMtjMatrix.print(A,null);
 
-		points[0].setTo(x);
+		points[0].set(x);
 
 		for (int i = 1; i <= n; i++) {
 
@@ -254,14 +254,14 @@ public class UnscentedKalmanFilter<Control> implements KalmanFilterInterface<Con
 			DMatrixRMaj p = points[i];
 
 			predictor.predict(p,control,elapsedTime);
-			p.setTo(predictor.getPredictedState());
+			p.set(predictor.getPredictedState());
 
 			CommonOps_DDRM.add(x, weights[i], p, x);
 		}
 
 		// compute the covariance with plant noise
 		predictor.predict(x, control, elapsedTime);
-		P.setTo(predictor.getPlantNoise());
+		P.set(predictor.getPlantNoise());
 
 		for (int i = firstCovIndex; i < points.length; i++) {
 			DMatrixRMaj p = points[i];
@@ -302,7 +302,7 @@ public class UnscentedKalmanFilter<Control> implements KalmanFilterInterface<Con
 		CommonOps_DDRM.mult(Pxz, temp1_NxN, K);
 
 		// x = x + K*(z-\hat{z})
-		temp1_Nx1.setTo(z);
+		temp1_Nx1.set(z);
 		CommonOps_DDRM.add(temp1_Nx1, -1, z_hat, temp1_Nx1);
 		CommonOps_DDRM.multAdd(K, temp1_Nx1, x);
 
@@ -328,7 +328,7 @@ public class UnscentedKalmanFilter<Control> implements KalmanFilterInterface<Con
 
 	private DMatrixRMaj computePredMeasCov(DMatrixRMaj r, DMatrixRMaj z_hat) {
 		DMatrixRMaj Pz = temp0_NxN;
-		Pz.setTo(r);
+		Pz.set(r);
 
 		// Pz = sum(i=0:2n+1) ( w_i (z_ihat - z_hat)(...)' )
 		for (int i = firstCovIndex; i < measPoints.length; i++) {
@@ -348,7 +348,7 @@ public class UnscentedKalmanFilter<Control> implements KalmanFilterInterface<Con
 
 			projector.compute(p);
 			DMatrixRMaj z_ihat = projector.getProjected();
-			measPoints[i].setTo(z_ihat);
+			measPoints[i].set(z_ihat);
 			CommonOps_DDRM.add(z_hat, weights[i], z_ihat, z_hat);
 		}
 		return z_hat;
