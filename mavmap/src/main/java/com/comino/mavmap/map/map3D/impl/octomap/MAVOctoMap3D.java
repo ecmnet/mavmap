@@ -12,6 +12,7 @@ import georegression.struct.GeoTuple4D_F32;
 import georegression.struct.point.Point4D_F32;
 import georegression.struct.point.Vector3D_F32;
 import us.ihmc.euclid.tuple3D.Point3D;
+import us.ihmc.jOctoMap.boundingBox.OcTreeSimpleBoundingBox;
 import us.ihmc.jOctoMap.iterators.OcTreeIterable;
 import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
@@ -151,17 +152,17 @@ public class MAVOctoMap3D {
 //	}
 
 
-//	public List<Long> getLeafsAtPositionEncoded(  GeoTuple4D_F32<?> p, float l, float h) {
-//		encodedList.clear();
-//
-//		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), new MAVBoundingBox(p,l, h)).
-//		forEach((n) ->  {
-//			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
-//				encodedList.add(encode(n,1));
-//		});
-//
-//		return encodedList;	
-//	}
+	public List<Long> getLeafsInBoundingBoxEncoded(OcTreeSimpleBoundingBox box) {
+		encodedList.clear();
+
+		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), box).
+		forEach((n) ->  {
+			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
+				encodedList.add(encode(n,1));
+		});
+
+		return encodedList;	
+	}
 
 
 	public int getNumberOfNodes() {
