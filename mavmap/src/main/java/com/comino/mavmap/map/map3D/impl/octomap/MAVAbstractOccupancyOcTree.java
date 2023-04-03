@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.comino.mavmap.map.map3D.impl.octomap.node.MAVOcTreeRayTools;
+import com.comino.mavmap.map.map3D.impl.octomap.rule.MAVOccupancyUpdateRule;
 import com.comino.mavmap.map.map3D.impl.octomap.tools.MAVOctoMapTools;
 
 import us.ihmc.euclid.transform.interfaces.Transform;
@@ -56,7 +58,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
     */
    private boolean discretizePointCloud = false;
 
-   protected final UpdateOccupancyRule<NODE> updateOccupancyRule;
+   protected final MAVOccupancyUpdateRule<NODE> updateOccupancyRule;
    protected final SetOccupancyRule<NODE> setOccupancyRule = new SetOccupancyRule<>();
    private final CollidableRule<NODE> collidableRule = new CollidableRule<NODE>()
    {
@@ -69,7 +71,9 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
 
    protected boolean useChangeDetection;
    /** Set of leaf keys (lowest level) which changed since last resetChangeDetection */
-   protected final ConcurrentMap<OcTreeKeyReadOnly, Boolean> changedKeys = new ConcurrentHashMap<>();
+   
+   protected final ConcurrentMap<OcTreeKeyReadOnly, Byte> changedKeys = new ConcurrentHashMap<>();
+   
 
    private final OcTreeKeySet freeCells = new OcTreeKeySet(1000000);
    private final OcTreeKeySet occupiedCells = new OcTreeKeySet(1000000);
@@ -77,7 +81,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
    public MAVAbstractOccupancyOcTree(double resolution)
    {
       super(resolution);
-      updateOccupancyRule = new UpdateOccupancyRule<>(occupancyParameters);
+      updateOccupancyRule = new MAVOccupancyUpdateRule<>(occupancyParameters);
       useChangeDetection = false;
    }
 
@@ -86,7 +90,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
    protected MAVAbstractOccupancyOcTree(double resolution, int treeDepth)
    {
       super(resolution, treeDepth);
-      updateOccupancyRule = new UpdateOccupancyRule<>(occupancyParameters);
+      updateOccupancyRule = new MAVOccupancyUpdateRule<>(occupancyParameters);
       useChangeDetection = false;
    }
 
@@ -94,7 +98,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
    {
       super(other);
       occupancyParameters.set(other.occupancyParameters);
-      updateOccupancyRule = new UpdateOccupancyRule<>(occupancyParameters);
+      updateOccupancyRule = new MAVOccupancyUpdateRule<>(occupancyParameters);
       boundingBox = other.boundingBox.getCopy();
       changedKeys.putAll(other.changedKeys);
       enableChangeDetection(other.useChangeDetection);
@@ -234,9 +238,9 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
       occupiedCells.clear();
 
       if (discretizePointCloud)
-         OcTreeRayTools.computeDiscreteUpdate(sensorOrigin, scan, freeCells, occupiedCells, boundingBox, minInsertRange, maxInsertRange, resolution, treeDepth);
+         MAVOcTreeRayTools.computeDiscreteUpdate(sensorOrigin, scan, freeCells, occupiedCells, boundingBox, minInsertRange, maxInsertRange, resolution, treeDepth);
       else
-         OcTreeRayTools.computeUpdate(sensorOrigin, scan, freeCells, occupiedCells, boundingBox, minInsertRange, maxInsertRange, resolution, treeDepth);
+    	  MAVOcTreeRayTools.computeUpdate(sensorOrigin, scan, freeCells, occupiedCells, boundingBox, minInsertRange, maxInsertRange, resolution, treeDepth);
 
       // insert data into tree  -----------------------
       for (OcTreeKeyReadOnly key : occupiedCells)
@@ -287,7 +291,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
       {
          Point3D point = new Point3D(scan.getPoint(i));
          direction.sub(point, sensorOrigin);
-         double length = direction.length();
+         double length = direction.norm();
          if (minInsertRange > 0.0 && length < minInsertRange)
             continue;
 
@@ -481,7 +485,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
    {
       Vector3D direction = new Vector3D();
       direction.sub(end, origin);
-      double length = direction.length();
+      double length = direction.norm();
 
       if (minInsertRange > 0.0 && length < minInsertRange)
          return false;
@@ -623,7 +627,7 @@ public abstract class MAVAbstractOccupancyOcTree<NODE extends AbstractOccupancyO
       return changedKeys.size();
    }
 
-   public Map<OcTreeKeyReadOnly, Boolean> getChangedKeys()
+   public Map<OcTreeKeyReadOnly, Byte> getChangedKeys()
    {
       return changedKeys;
    }

@@ -17,6 +17,7 @@ import com.comino.mavmap.map.map3D.Map3DSpacialInfo;
 import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTree;
 import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTreeNode;
 import com.comino.mavmap.map.map3D.impl.octomap.MAVOctoMap3D;
+import com.comino.mavmap.map.map3D.impl.octomap.rule.MAVOccupancyUpdateRule;
 import com.comino.mavutils.MSPMathUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -95,14 +96,15 @@ public class OctoMap3DStorage {
 
 		map.clear();
 		map.resetChangeDetection();
-		map.disableRemoveOutdated();
+		boolean old_enable_outdated = map.enableRemoveOutdated(false);
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
 		readBTDataRecursive(map.getTree(),null, inputStream);
-
+		
 		inputStream.close();
 
+		map.enableRemoveOutdated(old_enable_outdated);
 		System.out.println("\n"+map.getTree().numberOfChangesDetected()+" nodes read from "+filename);
 		return map;
 
@@ -165,7 +167,7 @@ public class OctoMap3DStorage {
 		Point4D_F32 mappo = new Point4D_F32();
 		map.clear();
 		map.resetChangeDetection();
-		map.disableRemoveOutdated();
+	    boolean old_enable_outdated = map.enableRemoveOutdated(false);
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
@@ -181,6 +183,7 @@ public class OctoMap3DStorage {
 					map.decode(data[i], mappo);
 					map.insert(mappo);
 				}
+				map.enableRemoveOutdated(old_enable_outdated);
 				return true;
 			} catch (Exception e) {
 				System.err.println(fn+" reading error ");
@@ -203,7 +206,7 @@ public class OctoMap3DStorage {
 
 		map.clear();
 		map.resetChangeDetection();
-		map.disableRemoveOutdated();
+        boolean old_enable_outdated = map.enableRemoveOutdated(false);
 		node_counter = 0;
 		map.getTree().updateNode(OcTreeKeyTools.getRootKey(map.getTree().getTreeDepth()),false);
 
@@ -225,6 +228,7 @@ public class OctoMap3DStorage {
 						map.update(vehicle, target);
 
 				}
+				map.enableRemoveOutdated(old_enable_outdated);
 				return true;
 			} catch (Exception e) {
 				System.err.println(fn+" reading error ");
@@ -385,7 +389,7 @@ public class OctoMap3DStorage {
 			for(int i=0; i<8; i++) {
 				if ((child = node.getChild(i)) != null) {
 					OcTreeKey childKey = OcTreeKeyTools.computeChildKey(i, node, childDepth,tree_depth);
-					tmp.getChangedKeys().put(childKey, true);
+					tmp.getChangedKeys().put(childKey, MAVOccupancyUpdateRule.CREATED);
 					child.setProperties(childKey, childDepth, resolution, tree_depth);
 					if (Math.abs(child.getLogOdds() + 200.)<1e-3) {
 						readBTDataRecursive(tmp,child,in);

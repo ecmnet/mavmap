@@ -11,23 +11,39 @@ public final class MAVOccupancyOcTreeNode extends AbstractOccupancyOcTreeNode<MA
 
 	public MAVOccupancyOcTreeNode() {
 		super();
-		this.tms = System.currentTimeMillis();
+		this.tms = System.nanoTime();
 	}
 	
 	public void setValidityToInfinite() {
 		this.tms = Long.MAX_VALUE;
 	}
-
+	
+	public void outdate() {
+		this.tms = 0;
+		super.setLogOdds(1.0e-7f);
+	}
+	
 	@Override
-	public void clear() {
-	  this.tms = Long.MAX_VALUE;
+	public void resetLogOdds() {
+		this.tms = System.nanoTime();
 	  super.resetLogOdds();
 	}
 
 	@Override
+	public void clear() {
+	this.resetLogOdds();
+	}
+
+	@Override
 	public void setLogOdds(float f) {
-		this.tms = System.currentTimeMillis();
+		this.tms = System.nanoTime();
 		super.setLogOdds(f);
+	}
+
+	@Override
+	public void addValue(float logOdds) {
+		this.tms = System.nanoTime();
+		super.addValue(logOdds);
 	}
 
 	public long getTimestamp() {
