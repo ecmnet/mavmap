@@ -1,4 +1,4 @@
-package com.comino.mavmap.map.map3D.impl.octomap.node;
+package com.comino.mavmap.map.map3D.impl.octomap.tools;
 
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.euclid.tuple3D.Vector3D;

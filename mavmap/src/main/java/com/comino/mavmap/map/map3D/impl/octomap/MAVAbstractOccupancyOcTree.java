@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.comino.mavmap.map.map3D.impl.octomap.node.MAVOcTreeRayTools;
 import com.comino.mavmap.map.map3D.impl.octomap.rule.MAVOccupancyUpdateRule;
+import com.comino.mavmap.map.map3D.impl.octomap.tools.MAVOcTreeRayTools;
 import com.comino.mavmap.map.map3D.impl.octomap.tools.MAVOctoMapTools;
 
 import us.ihmc.euclid.transform.interfaces.Transform;
