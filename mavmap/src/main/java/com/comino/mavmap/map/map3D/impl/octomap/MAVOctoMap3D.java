@@ -26,8 +26,6 @@ public class MAVOctoMap3D {
 	public final static double  INDETERMINED = -1;
 	public final static int     DELETED      =  4;
 
-	private final static double RESOLUTION   = 0.2;
-
 	private MAVOccupancyOcTree         map;
 	private final Point3D              tmp;
 	private final OcTreeKey            tmpkey;
@@ -37,7 +35,7 @@ public class MAVOctoMap3D {
 	private boolean allowRemoveOutDated;
 
 	public MAVOctoMap3D() {
-		this(RESOLUTION,true);
+		this(0.2f,true);
 	}
 
 	public MAVOctoMap3D(double resolution, boolean allowRemoveOutDated) {
@@ -134,9 +132,16 @@ public class MAVOctoMap3D {
 	public double search(GeoTuple3D_F32<?> p) {
 		return search(p.x,p.y,p.z);
 	}
+	
+	public void clearAndChangeResolution(float resolution) {
+		this.map = new MAVOccupancyOcTree(resolution);
+		this.map.enableChangeDetection(true);
+		this.nodesToBeDeleted.clear();
+		this.encodedList.clear();
+	}
 
 	public void clear() {
-		this.map = new MAVOccupancyOcTree(RESOLUTION);
+		this.map = new MAVOccupancyOcTree(map.getResolution());
 		this.map.enableChangeDetection(true);
 		this.nodesToBeDeleted.clear();
 		this.encodedList.clear();
@@ -219,14 +224,14 @@ public class MAVOctoMap3D {
 	}
 
 
-	public void removeOutdatedNodes(long dt_ns) {
+	public void removeOutdatedNodes(long dt_ms) {
 
 		if(!allowRemoveOutDated)
 			return;
 		
 		deleteOutdatedNodes();
 
-		long tms = System.nanoTime()-dt_ns;
+		long tms = System.nanoTime()-(dt_ms * 1_000_000L);
 
 		OcTreeIterable<MAVOccupancyOcTreeNode> leaf_nodes = OcTreeIteratorFactory.createLeafIterable(map.getRoot());
 		

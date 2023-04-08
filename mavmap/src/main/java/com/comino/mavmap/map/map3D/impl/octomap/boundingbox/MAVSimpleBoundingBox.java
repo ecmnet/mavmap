@@ -2,6 +2,7 @@ package com.comino.mavmap.map.map3D.impl.octomap.boundingbox;
 
 import georegression.struct.GeoTuple4D_F32;
 import us.ihmc.jOctoMap.boundingBox.OcTreeSimpleBoundingBox;
+import us.ihmc.jOctoMap.tools.OcTreeKeyConversionTools;
 
 public class MAVSimpleBoundingBox extends OcTreeSimpleBoundingBox {
 
@@ -39,5 +40,5 @@ public class MAVSimpleBoundingBox extends OcTreeSimpleBoundingBox {
 		this.update(resolution, depth);
 
 	}
-
+	
 }

@@ -1,5 +1,7 @@
 package com.comino.mavmap.map.map3D.impl.octomap.boundingbox;
 
+import com.comino.mavmap.map.map3D.impl.octomap.MAVOctoMap3D;
+
 import georegression.struct.GeoTuple4D_F32;
 import us.ihmc.jOctoMap.boundingBox.OcTreeBoundingBoxWithCenterAndYaw;
 import us.ihmc.jOctoMap.boundingBox.OcTreeSimpleBoundingBox;
@@ -7,18 +9,23 @@ import us.ihmc.jOctoMap.boundingBox.OcTreeSimpleBoundingBox;
 public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 	
 	private final OcTreeSimpleBoundingBox box = new OcTreeSimpleBoundingBox();
+	private final float resolution;
 	
-	public MAVBoundingBox() {
+	public MAVBoundingBox(MAVOctoMap3D map) {
 		super();
+		this.resolution = map.getResolution();
 	}
 	
-	public MAVBoundingBox(GeoTuple4D_F32<?> p, float half_side_xy, float half_side_z) {
+	
+	public MAVBoundingBox(MAVOctoMap3D map,GeoTuple4D_F32<?> p, float half_side_xy, float half_side_z) {
 		super();
+		this.resolution = map.getResolution();
 		set(p,half_side_xy,half_side_z);
 	}
 	
-	public MAVBoundingBox(GeoTuple4D_F32<?> p, float half_side_xy) {
+	public MAVBoundingBox(MAVOctoMap3D map,GeoTuple4D_F32<?> p, float half_side_xy) {
 		super();
+		this.resolution = map.getResolution();
 		setTop(p,half_side_xy);
 	}
 	
@@ -29,7 +36,7 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 		
 		this.setLocalBoundingBox(box);
 		this.setYaw(0);
-		this.update(0.2f, 16);
+		this.update(this.resolution, 16);
 	}
 	
 	public void setTop(GeoTuple4D_F32<?> p, float half_side_xyz) {
@@ -39,7 +46,7 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 		
 		this.setLocalBoundingBox(box);
 		this.setYaw(0);
-		this.update(0.2f, 16);
+		this.update(this.resolution, 16);
 	}
 
 
