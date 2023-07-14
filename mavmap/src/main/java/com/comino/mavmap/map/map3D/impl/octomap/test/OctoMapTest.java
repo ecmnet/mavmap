@@ -1,12 +1,15 @@
 package com.comino.mavmap.map.map3D.impl.octomap.test;
 
 import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTree;
+import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTreeNode;
 
 import us.ihmc.euclid.tuple3D.Point3D;
 import us.ihmc.jOctoMap.boundingBox.OcTreeBoundingBoxWithCenterAndYaw;
 import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
+import us.ihmc.jOctoMap.tools.JOctoMapTools;
 import us.ihmc.jOctoMap.tools.OcTreeKeyConversionTools;
+import us.ihmc.jOctoMap.tools.OcTreeSearchTools;
 
 public class OctoMapTest {
 
@@ -16,6 +19,12 @@ public class OctoMapTest {
 
 		map = new MAVOccupancyOcTree(0.2);
 
+	}
+	
+	public void incrementalSet(double probability) {
+		map.updateNode((float)(10/5.0f), (float)(5/5.0f), (float)(5/5.0f),JOctoMapTools.logodds(probability));
+		MAVOccupancyOcTreeNode n = OcTreeSearchTools.search(map.getRoot(), (float)(10/5.0f), (float)(5/5.0f), (float)(5/5.0f), 0.2, 16);
+		System.out.println(n.getOccupancy());
 	}
 	
 
@@ -89,16 +98,21 @@ public class OctoMapTest {
 
 	public static void main(String[] args) {
 		OctoMapTest test = new OctoMapTest();
-
-		test.fillTwo(true);
-		test.removeOne();
 		
-		test.fillTwo(true);
-		test.removeOne();
-		
+		test.incrementalSet(0.3);
+		test.incrementalSet(0.3);
+		test.incrementalSet(0.6);
 
-		test.fillTwo(true);
-		test.removeOne();
+
+//		test.fillTwo(true);
+//		test.removeOne();
+//		
+//		test.fillTwo(true);
+//		test.removeOne();
+//		
+//
+//		test.fillTwo(true);
+//		test.removeOne();
 	
 
 	}

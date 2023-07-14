@@ -59,5 +59,9 @@ public class MAVOctoMapTools {
 		scan.add(new Point3D(point.x, point.y, -point.z));
 		
 	}
+	public static void addToPointCloudSwapXY(PointCloud scan, GeoTuple3D_F64<?> point) {
+		scan.add(new Point3D(point.y, point.x, -point.z));
+		
+	}
 
 }
