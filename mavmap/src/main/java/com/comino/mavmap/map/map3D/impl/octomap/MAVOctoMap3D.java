@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.comino.mavmap.map.map3D.impl.octomap.esdf.D2.DynamicESDF2D;
 import com.comino.mavmap.map.map3D.impl.octomap.rule.MAVOccupancyUpdateRule;
 
 import georegression.struct.GeoTuple3D_F32;
@@ -18,6 +19,7 @@ import us.ihmc.jOctoMap.iterators.OcTreeIterable;
 import us.ihmc.jOctoMap.iterators.OcTreeIteratorFactory;
 import us.ihmc.jOctoMap.key.OcTreeKey;
 import us.ihmc.jOctoMap.key.OcTreeKeyReadOnly;
+import us.ihmc.jOctoMap.tools.OcTreeNearestNeighborTools;
 import us.ihmc.jOctoMap.tools.OcTreeSearchTools;
 import us.ihmc.jOctoMap.tools.OccupancyTools;
 
@@ -29,6 +31,8 @@ public class MAVOctoMap3D {
 	private MAVOccupancyOcTree         map;
 	private final Point3D              tmp;
 	private final OcTreeKey            tmpkey;
+	
+	private final DynamicESDF2D        esdf;
 
 	private final List<OcTreeKeyReadOnly> nodesToBeDeleted;
 	private final List<Long> encodedList = new ArrayList<Long>();
@@ -49,9 +53,16 @@ public class MAVOctoMap3D {
 
 		this.allowRemoveOutDated = allowRemoveOutDated;
 		this.map.enableDiscretizePointCloud(true);
+		this.esdf   = new DynamicESDF2D(10.0f);
 
-		System.out.println(map.getTreeDepth());
-
+	}
+	
+	public void updateESDF(GeoTuple4D_F32<?> p) {
+		esdf.update(p,map);		
+	}
+	
+	public DynamicESDF2D getLocalEDF2D() {
+		return esdf;
 	}
 
 	public boolean enableRemoveOutdated(boolean enable) {
@@ -125,6 +136,7 @@ public class MAVOctoMap3D {
 	public boolean isOccupied(GeoTuple4D_F32<?> p) {
 		return isOccupied(p,map.getResolution(),map.getTreeDepth());
 	}
+	
 
 	public boolean isOccupied(GeoTuple4D_F32<?> p, double resolution, int depth) {
 		tmp.set(p.x,p.y,-p.z);
@@ -187,10 +199,11 @@ public class MAVOctoMap3D {
 
 		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), box).
 		forEach((n) ->  {
-			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n))
+			if(OccupancyTools.isNodeOccupied(map.getOccupancyParameters(), n)) {
 				encodedList.add(encode(n,1));
+			}
 		});
-
+		
 		return encodedList;	
 	}
 

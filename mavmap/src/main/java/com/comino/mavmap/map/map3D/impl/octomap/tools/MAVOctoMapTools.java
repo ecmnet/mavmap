@@ -13,6 +13,7 @@ import us.ihmc.jOctoMap.tools.OcTreeRayTools;
 
 public class MAVOctoMapTools {
 	
+	private static Point3D point;
 	
 	public static void insertPointCloudRays(List<GeoTuple3D_F64<?>> scan, GeoTuple3D_F64<?> sensorOrigin, MAVOccupancyOcTree tree, 
                 double min, double max, boolean discretize)
@@ -26,7 +27,7 @@ public class MAVOctoMapTools {
 	      for (int i = 0; i < scan.size(); i++)
 	      {
 	    	 GeoTuple3D_F64<?> p = scan.get(i);
-	         Point3D point = new Point3D(p.x,p.y,-p.z);
+	         point.set(p.x,p.y,-p.z);
 	         direction.sub(point, origin);
 	         double length = direction.norm();
 	         if (min > 0.0 && length < min)
@@ -56,7 +57,7 @@ public class MAVOctoMapTools {
 	   }
 	
 	public static void addToPointCloud(PointCloud scan, GeoTuple3D_F64<?> point) {
-		scan.add(new Point3D(point.x, point.y, -point.z));
+		scan.add(point.x, point.y, -point.z);
 		
 	}
 	public static void addToPointCloudSwapXY(PointCloud scan, GeoTuple3D_F64<?> point) {

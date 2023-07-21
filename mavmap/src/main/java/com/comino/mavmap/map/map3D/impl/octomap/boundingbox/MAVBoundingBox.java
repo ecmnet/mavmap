@@ -1,5 +1,6 @@
 package com.comino.mavmap.map.map3D.impl.octomap.boundingbox;
 
+import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTree;
 import com.comino.mavmap.map.map3D.impl.octomap.MAVOctoMap3D;
 
 import georegression.struct.GeoTuple4D_F32;
@@ -10,22 +11,20 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 	
 	private final OcTreeSimpleBoundingBox box = new OcTreeSimpleBoundingBox();
 	private final float resolution;
+	private final int   treeDepth;
 	
-	public MAVBoundingBox(MAVOctoMap3D map) {
+	public MAVBoundingBox(MAVOccupancyOcTree map) {
 		super();
-		this.resolution = map.getResolution();
+		this.resolution = (float)map.getResolution();
+		this.treeDepth  = map.getTreeDepth();
 	}
-	
-	
-	public MAVBoundingBox(MAVOctoMap3D map,GeoTuple4D_F32<?> p, float half_side_xy, float half_side_z) {
-		super();
-		this.resolution = map.getResolution();
+	public MAVBoundingBox(MAVOccupancyOcTree map,GeoTuple4D_F32<?> p, float half_side_xy, float half_side_z) {
+		this(map);
 		set(p,half_side_xy,half_side_z);
 	}
 	
-	public MAVBoundingBox(MAVOctoMap3D map,GeoTuple4D_F32<?> p, float half_side_xy) {
-		super();
-		this.resolution = map.getResolution();
+	public MAVBoundingBox(MAVOccupancyOcTree map,GeoTuple4D_F32<?> p, float half_side_xy) {
+		this(map);
 		setTop(p,half_side_xy);
 	}
 	
@@ -36,7 +35,7 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 		
 		this.setLocalBoundingBox(box);
 		this.setYaw(0);
-		this.update(this.resolution, 16);
+		this.update(this.resolution, treeDepth);
 	}
 	
 	public void setTop(GeoTuple4D_F32<?> p, float half_side_xyz) {
@@ -46,7 +45,27 @@ public class MAVBoundingBox extends OcTreeBoundingBoxWithCenterAndYaw {
 		
 		this.setLocalBoundingBox(box);
 		this.setYaw(0);
-		this.update(this.resolution, 16);
+		this.update(this.resolution, treeDepth);
+	}
+	
+	public void set(GeoTuple4D_F32<?> p, float half_side_x, float half_side_y, float half_side_z) {
+		box.setMinX( p.x-half_side_x); box.setMaxX( p.x+half_side_x);
+		box.setMinY( p.y-half_side_y); box.setMaxY( p.y+half_side_y);
+		box.setMinZ( p.z-half_side_z); box.setMaxZ (p.z+half_side_z);
+		
+		this.setLocalBoundingBox(box);
+		this.setYaw(0);
+		this.update(this.resolution, treeDepth);
+	}
+	
+	public void set(float x, float y, float z, float half_side_x, float half_side_y, float half_side_z) {
+		box.setMinX( x-half_side_x); box.setMaxX( x+half_side_x);
+		box.setMinY( y-half_side_y); box.setMaxY( y+half_side_y);
+		box.setMinZ( z-half_side_z); box.setMaxZ (z+half_side_z);
+		
+		this.setLocalBoundingBox(box);
+		this.setYaw(0);
+		this.update(this.resolution, treeDepth);
 	}
 
 
