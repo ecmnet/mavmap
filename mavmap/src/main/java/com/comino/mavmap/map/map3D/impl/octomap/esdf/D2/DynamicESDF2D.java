@@ -5,6 +5,7 @@ import com.comino.mavmap.map.map3D.impl.octomap.MAVOccupancyOcTreeNode;
 import com.comino.mavmap.map.map3D.impl.octomap.boundingbox.MAVBoundingBox;
 import com.comino.mavmap.map.map3D.impl.octomap.boundingbox.MAVSimpleBoundingBox;
 
+import georegression.struct.GeoTuple3D_F64;
 import georegression.struct.GeoTuple4D_F32;
 import us.ihmc.jOctoMap.iterators.OcTreeIterable.OcTreeIterator;
 import us.ihmc.jOctoMap.tools.OccupancyTools;
@@ -64,6 +65,7 @@ public class DynamicESDF2D {
 	}
 
 	public void update(GeoTuple4D_F32<?> p,MAVOccupancyOcTree map) {
+
 		initialize();
 		boundingBox.set(p,10.0f,0.25f);	
 		OcTreeIteratorFactory.createLeafBoundingBoxIteratable(map.getRoot(), boundingBox).forEach((node) -> {
@@ -90,12 +92,37 @@ public class DynamicESDF2D {
 	}
 
 	public double getDistanceAt(GeoTuple4D_F32<?> p) {
-		int val = esdf_map[(int)(p.x/resolution)+sizex_2][(int)(p.y/resolution)+sizey_2];
+
+		int x = (int)((p.x - boundingBox.getCenter().x)/resolution)+sizex_2;
+		int y = (int)((p.y - boundingBox.getCenter().y)/resolution)+sizey_2;
+
+		if(x < 0) x = 0; if(x>=sizex) x = sizex-1;
+		if(y < 0) y = 0; if(y>=sizey) y = sizey-1;
+
+		int val = esdf_map[x][y];
 		if(val == OCCUPPIED)
 			return 0;
 		if(val == UNKNOWN)
-			return Float.NaN;
+			return Float.MAX_VALUE;
 		return (float)(Math.sqrt(val)*resolution);
+
+	}
+	
+	public double getDistanceAt(GeoTuple3D_F64<?> p) {
+
+		int x = (int)((p.x - boundingBox.getCenter().x)/resolution)+sizex_2;
+		int y = (int)((p.y - boundingBox.getCenter().y)/resolution)+sizey_2;
+
+		if(x < 0) x = 0; if(x>=sizex) x = sizex-1;
+		if(y < 0) y = 0; if(y>=sizey) y = sizey-1;
+
+		int val = esdf_map[x][y];
+		if(val == OCCUPPIED)
+			return 0;
+		if(val == UNKNOWN)
+			return Float.MAX_VALUE;
+		return (float)(Math.sqrt(val)*resolution);
+
 	}
 
 	private void determineMinDistCell(int esdfx, int esdfy) {
